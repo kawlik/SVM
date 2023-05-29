@@ -12,6 +12,9 @@ btnGreen.addEventListener("click", () => (color = "#22C55E"));
 btnBlue.addEventListener("click", () => (color = "#BAD7F2"));
 btnRed.addEventListener("click", () => (color = "#F2BAC9"));
 
+export const chartData1 = blob(50, 1, 0.25, 0.25, 0.25, 0.25);
+export const chartData2 = blob(50, 1, 0.75, 0.25, 0.75, 0.25);
+
 export const canvas = document.querySelector<HTMLCanvasElement>("#chart")!;
 
 export const chart = new Chart(canvas, {
@@ -23,11 +26,11 @@ export const chart = new Chart(canvas, {
 				backgroundColor: "#22C55E",
 			},
 			{
-				data: blob(50, 1, 0.25, 0.25, 0.25, 0.25),
+				data: [...chartData1],
 				backgroundColor: "#BAD7F2",
 			},
 			{
-				data: blob(50, 1, 0.75, 0.25, 0.75, 0.25),
+				data: [...chartData2],
 				backgroundColor: "#F2BAC9",
 			},
 		],
@@ -80,8 +83,6 @@ export const chart = new Chart(canvas, {
 		{
 			id: "draw_boundries",
 			beforeDraw(chart) {
-				if (!classifier) return;
-
 				const ctx = chart.ctx;
 				const cvs = chart.canvas;
 				const deep = Math.log2(cvs.width);

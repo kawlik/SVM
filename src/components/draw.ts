@@ -1,5 +1,5 @@
-const colorOut = "#E5F0FA";
-const colorIn = "#FAE5EB";
+const colorOut = "#FAE5EB";
+const colorIn = "#E5F0FA";
 
 function rand(min: number, max: number): number {
 	if (min > max) [min, max] = [max, min];
@@ -37,6 +37,8 @@ export function drawRecurse(
 		rand(data.x, data.x + data.w) / cvs.width,
 		rand(data.y, data.y + data.w) / cvs.width,
 	]);
+
+	if (Number.isNaN(initialGuess)) return;
 
 	for (let i = 0; i < deep ** 3; i++) {
 		const x = rand(data.x, data.x + data.w) / cvs.width;

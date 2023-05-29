@@ -10,35 +10,37 @@ export class SVC {
 	private b: number = 0;
 
 	constructor(
+		private readonly cardinality: number,
 		private readonly convergence = 1e-3,
 		private readonly coalescence = 1e-2,
 		private readonly numEpochs = 10_000
 	) {
-		// initialize empty
+		// init externals
 		this.inputs = [];
 		this.expect = [];
+
+		// init internalss
+		this.a = [];
+		this.b = 0;
 	}
 
-	public product(inputs: number[]): number {
-		const base = Vector.dot(inputs, this.a, this.a.length);
-
-		return base - this.b;
-	}
-
-	public predict(inputs: number[]): number {
-		const base = this.product(inputs);
-
-		return Math.sign(base);
+	public predict(input: number[]): number {
+		return Math.sign(this.margin(input));
 	}
 
 	public train(inputs: number[][], expect: number[]): void {
 		this.inputs = inputs;
 		this.expect = expect;
 
+		// init internalss
+		this.a = new Array(this.cardinality).fill(0);
+		this.b = 0;
+
+		// step forward
 		for (let epochs = 0; epochs < this.numEpochs; epochs++) {
 			for (let i = 0; i < this.inputs.length; i++) {
-				if (this.product(this.inputs[i]) * this.expect[i] < 0) {
-					this.adjustNegative(this.inputs[i], this.expect[i]);
+				if (expect[i] * this.margin(inputs[i]) < 1) {
+					this.adjustNegative(inputs[i], expect[i]);
 				} else {
 					this.adjustPositive();
 				}
@@ -46,11 +48,11 @@ export class SVC {
 		}
 	}
 
-	private adjustNegative(inputs: number[], expect: number): void {
+	private adjustNegative(input: number[], expect: number): void {
 		this.b -= this.convergence * expect;
 
 		for (let i = 0; i < this.a.length; i++) {
-			const delta = 2 * this.coalescence * this.a[i] - inputs[i] * expect;
+			const delta = 2 * this.coalescence * this.a[i] - input[i] * expect;
 
 			this.a[i] -= this.convergence * delta;
 		}
@@ -62,5 +64,15 @@ export class SVC {
 
 			this.a[i] -= this.convergence * delta;
 		}
+	}
+
+	private margin(input: number[]): number {
+		let margin = -this.b;
+
+		for (let i = 0; i < this.cardinality; i++) {
+			margin += input[i] * this.a[i];
+		}
+
+		return margin;
 	}
 }
