@@ -1,4 +1,6 @@
 import Chart from "chart.js/auto";
+import { drawRecurse } from "./draw";
+import { classifier } from "../main";
 
 export let color: "#22C55E" | "#BAD7F2" | "#F2BAC9" = "#22C55E";
 
@@ -70,6 +72,23 @@ export const chart = new Chart(canvas, {
 
 				chart.data.datasets[i].data.push({ x, y });
 				chart.update();
+			},
+		},
+		{
+			id: "draw_boundries",
+			beforeDraw(chart) {
+				if (!classifier) return;
+
+				const ctx = chart.ctx;
+				const cvs = chart.canvas;
+				const deep = Math.log2(cvs.width);
+				const data = {
+					x: 0,
+					y: 0,
+					w: cvs.width,
+				};
+
+				drawRecurse(ctx, cvs, classifier.predict, data, deep);
 			},
 		},
 	],

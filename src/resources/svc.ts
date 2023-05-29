@@ -1,28 +1,28 @@
-import { Random } from "./utils/random";
 import { Vector } from "./utils/vector";
 
 export class SVC {
-	private offset: number;
-	private weights: number[];
+	// externals
+	private inputs: number[][];
+	private expect: number[];
+
+	// internals
+	private a: number[] = [];
+	private b: number = 0;
 
 	constructor(
-		private readonly cardinality: number,
-		private readonly convergence: number,
-		private readonly discrepency: number,
-		private readonly lambda: number
+		private readonly convergence = 1e-3,
+		private readonly coalescence = 1e-2,
+		private readonly numEpochs = 10_000
 	) {
-		this.offset = Random.uniform() * this.discrepency;
-		this.weights = new Array(this.cardinality);
-
-		for (let i = 0; i < this.cardinality; i++) {
-			this.weights[i] = Math.random() * this.discrepency;
-		}
+		// initialize empty
+		this.inputs = [];
+		this.expect = [];
 	}
 
 	public product(inputs: number[]): number {
-		const base = Vector.dot(inputs, this.weights, this.cardinality);
+		const base = Vector.dot(inputs, this.a, this.a.length);
 
-		return base - this.offset;
+		return base - this.b;
 	}
 
 	public predict(inputs: number[]): number {
@@ -31,29 +31,36 @@ export class SVC {
 		return Math.sign(base);
 	}
 
-	public train(inputs: number[], expect: number): void {
-		if (this.product(inputs) * expect < 0) {
-			this.adjustNegative(inputs, expect);
-		} else {
-			this.adjustPositive();
+	public train(inputs: number[][], expect: number[]): void {
+		this.inputs = inputs;
+		this.expect = expect;
+
+		for (let epochs = 0; epochs < this.numEpochs; epochs++) {
+			for (let i = 0; i < this.inputs.length; i++) {
+				if (this.product(this.inputs[i]) * this.expect[i] < 0) {
+					this.adjustNegative(this.inputs[i], this.expect[i]);
+				} else {
+					this.adjustPositive();
+				}
+			}
 		}
 	}
 
 	private adjustNegative(inputs: number[], expect: number): void {
-		this.offset -= this.convergence * expect;
+		this.b -= this.convergence * expect;
 
-		for (let i = 0; i < this.cardinality; i++) {
-			const delta = 2 * this.lambda * this.weights[i] - inputs[i] * expect;
+		for (let i = 0; i < this.a.length; i++) {
+			const delta = 2 * this.coalescence * this.a[i] - inputs[i] * expect;
 
-			this.weights[i] -= this.convergence * delta;
+			this.a[i] -= this.convergence * delta;
 		}
 	}
 
 	private adjustPositive(): void {
-		for (let i = 0; i < this.cardinality; i++) {
-			const delta = 2 * this.lambda * this.weights[i];
+		for (let i = 0; i < this.a.length; i++) {
+			const delta = 2 * this.coalescence * this.a[i];
 
-			this.weights[i] -= this.convergence * delta;
+			this.a[i] -= this.convergence * delta;
 		}
 	}
 }
