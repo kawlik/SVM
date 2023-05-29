@@ -23,11 +23,11 @@ export const chart = new Chart(canvas, {
 				backgroundColor: "#22C55E",
 			},
 			{
-				data: [] as { x: number; y: number }[],
+				data: blob(50, 1, 0.25, 0.25, 0.25, 0.25),
 				backgroundColor: "#BAD7F2",
 			},
 			{
-				data: [] as { x: number; y: number }[],
+				data: blob(50, 1, 0.75, 0.25, 0.75, 0.25),
 				backgroundColor: "#F2BAC9",
 			},
 		],
@@ -35,6 +35,9 @@ export const chart = new Chart(canvas, {
 	options: {
 		aspectRatio: 1,
 		events: ["click"],
+		layout: {
+			autoPadding: false,
+		},
 		plugins: {
 			legend: {
 				display: false,
@@ -88,8 +91,44 @@ export const chart = new Chart(canvas, {
 					w: cvs.width,
 				};
 
-				drawRecurse(ctx, cvs, classifier.predict, data, deep);
+				drawRecurse(ctx, cvs, (input) => classifier.predict(input), data, deep);
 			},
 		},
 	],
 });
+
+function blob(
+	n: number,
+	d: number,
+	xo: number,
+	xr: number,
+	yo: number,
+	yr: number
+): { x: number; y: number }[] {
+	const dataset = [] as { x: number; y: number }[];
+	const ellipse = (x: number, y: number): number => {
+		const xdt = (x - xo) ** 2;
+		const ydt = (y - xo) ** 2;
+
+		return xdt / xr ** 2 + ydt / yr ** 2;
+	};
+
+	const x_max = xo + xr;
+	const x_min = xo - xr;
+	const y_max = yo + yr;
+	const y_min = yo - yr;
+
+	for (let i = 0; i < n; i++) {
+		let xi = Math.random() * (x_max - x_min) + x_min;
+		let yi = Math.random() * (y_max - y_min) + y_min;
+
+		while (ellipse(xi, yi) > d ** 2) {
+			xi = Math.random() * (x_max - x_min) + x_min;
+			yi = Math.random() * (y_max - y_min) + y_min;
+		}
+
+		dataset.push({ x: xi, y: yi });
+	}
+
+	return dataset;
+}

@@ -13,13 +13,10 @@ btnStart.addEventListener("click", () => {
 
 	const predict1 = classifier.predict([x, y]);
 
-	const data1 = chart.data.datasets[1].data;
-	const data2 = chart.data.datasets[2].data;
+	const data1 = chart.data.datasets[1].data.map((d) => [d.x, d.y]);
+	const data2 = chart.data.datasets[2].data.map((d) => [d.x, d.y]);
 
-	classifier.train(
-		[...data1.map((d) => [d.x, d.y]), ...data2.map((d) => [d.x, d.y])],
-		[...new Array(data1.length).fill(+1), ...new Array(data2.length).fill(-1)]
-	);
+	classifier.train([...data1, ...data2], [...data1.map((_) => +1), ...data2.map((_) => -1)]);
 
 	const predict2 = classifier.predict([x, y]);
 
