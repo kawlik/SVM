@@ -1,7 +1,9 @@
 import { chart, chartData1, chartData2 } from "./components/chart";
 import { SVC } from "./resources/svc";
+import { SVM } from "./resources/svm";
 
-export const classifier = new SVC(2);
+// export const classifier = new SVC();
+export const classifier = new SVM();
 
 const btnStart = document.querySelector<HTMLButtonElement>("#btn-start")!;
 const btnReset = document.querySelector<HTMLButtonElement>("#btn-reset")!;

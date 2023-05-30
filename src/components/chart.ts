@@ -13,7 +13,7 @@ btnBlue.addEventListener("click", () => (color = "#BAD7F2"));
 btnRed.addEventListener("click", () => (color = "#F2BAC9"));
 
 export const chartData1 = blob(50, 1, 0.25, 0.25, 0.25, 0.25);
-export const chartData2 = blob(50, 1, 0.75, 0.25, 0.75, 0.25);
+export const chartData2 = blob(50, 1, 0.75, 0.5, 0.75, 0.25);
 
 export const canvas = document.querySelector<HTMLCanvasElement>("#chart")!;
 
