@@ -1,13 +1,21 @@
 import { Kernel } from "./utils/kernel";
+import { Random } from "./utils/random";
 
 export class SVM {
+	// external datasets
 	private inputs: number[][];
 	private expect: number[];
 
+	// internal params
 	private a: number[];
 	private b: number;
 
-	constructor(private readonly kernel = Kernel.rfb(0.1)) {
+	constructor(
+		private readonly kernel = Kernel.rfb(5e-2),
+		private readonly numEpochs = 10_000,
+		private readonly numPasses = 10,
+		private readonly tolerance = 1e-4
+	) {
 		// init externals
 		this.inputs = [];
 		this.expect = [];
@@ -17,127 +25,59 @@ export class SVM {
 		this.b = 0;
 	}
 
-	public display(rangex: [number, number, number], rangey: [number, number, number]): void {
-		const x_min = rangex[0];
-		const x_max = rangex[1];
-		const x_det = rangex[2];
-
-		const y_min = rangey[0];
-		const y_max = rangey[1];
-		const y_det = rangey[2];
-
-		for (let y = y_max; y >= y_min - y_det / 2; y -= y_det) {
-			let row = `${y >= 0 ? " " : ""}${y.toFixed(2)} `;
-
-			for (let x = x_min; x <= x_max + x_det / 2; x += x_det) {
-				const sign = this.predict([x, y]) > 0 ? "+" : "-";
-				const isD1 = (x - 0.75) ** 2 + (y - 0.75) ** 2 <= 0.5 ** 2;
-				const isD2 = (x - 0.25) ** 2 + (y + 0.25) ** 2 <= 0.5 ** 2;
-
-				if (isD1) row += "1";
-				if (isD2) row += "0";
-
-				if (!isD1 && !isD2) row += sign;
-			}
-
-			console.log(row);
-		}
-	}
-
 	public predict(input: number[]): number {
 		return Math.sign(this.margin(input));
 	}
 
 	public train(inputs: number[][], expect: number[]): void {
-		// store data and labels
+		// save external datasets
 		this.inputs = inputs;
 		this.expect = expect;
 
-		// parameters
-		const C = 1.0;
-		const N = this.inputs.length;
-		const kernel = this.kernel;
-		const tolerance = 1e-4;
-		const numEpochs = 10000;
-		const numPasses = 100;
-
-		// initializations
-		this.a = new Array(N).fill(0);
+		// init internal params
+		this.a = new Array(this.inputs.length).fill(0);
 		this.b = 0.0;
 
-		// run SMO algorithm
-		let iter = 0;
+		// init train params
+		let epochs = 0;
 		let passes = 0;
-		while (passes < numPasses && iter < numEpochs) {
-			let alphaChanged = 0;
-			for (let i = 0; i < N; i++) {
-				let Ei = this.margin(inputs[i]) - expect[i];
-				if (
-					(expect[i] * Ei < -tolerance && this.a[i] < C) ||
-					(expect[i] * Ei > tolerance && this.a[i] > 0)
-				) {
-					// alpha_i needs updating! Pick a j to update it with
-					let j = i;
-					while (j === i) j = Math.floor(Math.random() * this.inputs.length);
-					let Ej = this.margin(inputs[j]) - expect[j];
 
-					// calculate L and H bounds for j to ensure we're in [0 C]x[0 C] box
-					const ai = this.a[i];
-					const aj = this.a[j];
-					let L = 0;
-					let H = C;
-					if (expect[i] === expect[j]) {
-						L = Math.max(0, ai + aj - C);
-						H = Math.min(C, ai + aj);
-					} else {
-						L = Math.max(0, aj - ai);
-						H = Math.min(C, C + aj - ai);
-					}
+		// run SMO algotithm
+		while (epochs < this.numEpochs && passes < this.numPasses) {
+			let iterPassed = true;
 
-					if (Math.abs(L - H) < 1e-4) continue;
+			for (let i = 0; i < this.inputs.length; i++) {
+				// calculate primary margin
+				const marginI = this.margin(inputs[i]) - expect[i];
 
-					let eta =
-						2 * kernel(inputs[i], inputs[j]) -
-						kernel(inputs[i], inputs[i]) -
-						kernel(inputs[j], inputs[j]);
-					if (eta >= 0) continue;
+				// test if passes withou update
+				if (this.passesMarginI(marginI, i)) continue;
+				if (this.passesAdjustJ(marginI, i)) continue;
 
-					// compute new alpha_j and clip it inside [0 C]x[0 C] box
-					// then compute alpha_i based on it.
-					let newaj = aj - (expect[j] * (Ei - Ej)) / eta;
-					if (newaj > H) newaj = H;
-					if (newaj < L) newaj = L;
-					if (Math.abs(aj - newaj) < 1e-4) continue;
-					this.a[j] = newaj;
-					let newai = ai + expect[i] * expect[j] * (aj - newaj);
-					this.a[i] = newai;
+				// mark if adjusted
+				iterPassed = false;
+			}
 
-					// update the bias term
-					let b1 =
-						this.b -
-						Ei -
-						expect[i] * (newai - ai) * kernel(inputs[i], inputs[i]) -
-						expect[j] * (newaj - aj) * kernel(inputs[i], inputs[j]);
-					let b2 =
-						this.b -
-						Ej -
-						expect[i] * (newai - ai) * kernel(inputs[i], inputs[j]) -
-						expect[j] * (newaj - aj) * kernel(inputs[j], inputs[j]);
-					this.b = 0.5 * (b1 + b2);
-					if (newai > 0 && newai < C) this.b = b1;
-					if (newaj > 0 && newaj < C) this.b = b2;
+			// update
+			epochs++;
+			passes++;
 
-					alphaChanged++;
-				} // end alpha_i needed updating
-			} // end for i=1..N
-
-			iter++;
-			//console.log("iter number %d, alphaChanged = %d", iter, alphaChanged);
-			if (alphaChanged == 0) passes++;
-			else passes = 0;
+			// reset passes
+			if (!iterPassed) passes = 0;
 		}
+
+		// parse externals
+		this.inputs = this.inputs.filter((_, i) => Math.abs(this.a[i]) > 1e-2);
+		this.expect = this.expect.filter((_, i) => Math.abs(this.a[i]) > 1e-2);
+
+		// parse internals
+		this.a = this.a.filter((a) => a > 1e-2);
 	}
 
+	/**
+	 * @param input Input vector
+	 * @returns Distance to margin
+	 */
 	private margin(input: number[]): number {
 		let sum = this.b;
 
@@ -146,5 +86,93 @@ export class SVM {
 		}
 
 		return sum;
+	}
+
+	/**
+	 * @param marginI Distance to margin
+	 * @param i Current index to compare
+	 * @returns True if passes (no need to update)
+	 */
+	private passesMarginI(marginI: number, i: number): boolean {
+		return !(
+			(marginI * this.expect[i] < -this.tolerance && this.a[i] < 1) ||
+			(marginI * this.expect[i] > +this.tolerance && this.a[i] > 0)
+		);
+	}
+
+	/**
+	 * @param marginI Distance to margin
+	 * @param i Current index to compare
+	 * @returns True if adjust (no need to update)
+	 */
+	private passesAdjustJ(marginI: number, i: number): boolean {
+		const j = Random.randiexc(0, this.inputs.length - 1, i);
+
+		// calculate complementary margin
+		const marginJ = this.margin(this.inputs[j]) - this.expect[j];
+
+		// shortcuts
+		const AI = this.a[i];
+		const AJ = this.a[j];
+
+		let M = 0; // upper bound
+		let N = 1; // lower bound
+
+		// find bounds
+		if (this.expect[i] === this.expect[j]) {
+			M = Math.max(0, AI + AJ - 1);
+			N = Math.min(1, AI + AJ);
+		} else {
+			M = Math.max(0, AJ - AI);
+			N = Math.min(1, AJ - AI + 1);
+		}
+
+		// guard - no need to update
+		if (Math.abs(M - N) < this.tolerance) return true;
+
+		const kernelI = this.kernel(this.inputs[i], this.inputs[i]);
+		const kernelJ = this.kernel(this.inputs[j], this.inputs[j]);
+		const kernelX = this.kernel(this.inputs[i], this.inputs[j]);
+		const kernel = 2 * kernelX - kernelI - kernelJ;
+
+		// guad - no need to update
+		if (kernel >= 0) return true;
+
+		// calculate new AJ value & clamp to [N, M]
+		let newAJ = AJ - (this.expect[j] * (marginI - marginJ)) / kernel;
+		if (newAJ > N) newAJ = N;
+		if (newAJ < M) newAJ = M;
+
+		// guard - no need to update
+		if (Math.abs(AJ - newAJ) < this.tolerance) return true;
+
+		// calculate new AI value
+		let newAI = AI + this.expect[i] * this.expect[j] * (AJ - newAJ);
+		this.a[j] = newAJ;
+		this.a[i] = newAI;
+
+		// calculate new bias value (1)
+		const b1 =
+			this.b -
+			marginI -
+			this.expect[i] * (newAI - AI) * this.kernel(this.inputs[i], this.inputs[i]) -
+			this.expect[j] * (newAJ - AJ) * this.kernel(this.inputs[i], this.inputs[j]);
+
+		// calculate new bias value (2)
+		const b2 =
+			this.b -
+			marginJ -
+			this.expect[i] * (newAI - AI) * this.kernel(this.inputs[i], this.inputs[j]) -
+			this.expect[j] * (newAJ - AJ) * this.kernel(this.inputs[j], this.inputs[j]);
+
+		// update bias value
+		this.b = 0.5 * (b1 + b2);
+
+		// clamp bias value
+		if (newAI > 0 && newAI < 1) this.b = b1;
+		if (newAJ > 0 && newAJ < 1) this.b = b2;
+
+		// mark update
+		return false;
 	}
 }
