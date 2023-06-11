@@ -3,6 +3,7 @@ import { drawRecurse } from "./draw";
 import { classifier } from "../main";
 
 export let color: "#22C55E" | "#BAD7F2" | "#F2BAC9" = "#22C55E";
+export let chill = true;
 
 export const btnGreen = document.querySelector<HTMLButtonElement>("#btn-color-green")!;
 export const btnBlue = document.querySelector<HTMLButtonElement>("#btn-color-blue")!;
@@ -22,7 +23,7 @@ export const chart = new Chart(canvas, {
 	data: {
 		datasets: [
 			{
-				data: [{ x: Math.random(), y: Math.random() }] as { x: number; y: number }[],
+				data: [{ x: 0.5, y: 0.5 }] as { x: number; y: number }[],
 				backgroundColor: "#22C55E",
 			},
 			{
@@ -92,11 +93,19 @@ export const chart = new Chart(canvas, {
 					w: cvs.width,
 				};
 
+				if (chill) return;
+
 				drawRecurse(ctx, cvs, (input) => classifier.predict(input), data, deep);
 			},
 		},
 	],
 });
+
+export function drawBoundries() {
+	chill = false;
+	chart.draw();
+	chill = true;
+}
 
 function blob(
 	n: number,

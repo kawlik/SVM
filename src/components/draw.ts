@@ -20,7 +20,7 @@ function draw(
 
 	ctx.beginPath();
 	ctx.fillStyle = color;
-	ctx.fillRect(data.x, data.y, data.w, data.w);
+	ctx.fillRect(data.x, data.y, data.w + 5e-1, data.w + 5e-1);
 	ctx.closePath();
 }
 
@@ -40,7 +40,7 @@ export function drawRecurse(
 
 	if (Number.isNaN(initialGuess)) return;
 
-	for (let i = 0; i < deep ** 3; i++) {
+	for (let i = 0; i < deep ** 2 * Math.log2(deep); i++) {
 		const x = rand(data.x, data.x + data.w) / cvs.width;
 		const y = rand(data.y, data.y + data.w) / cvs.width;
 
