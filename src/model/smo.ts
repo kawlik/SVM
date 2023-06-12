@@ -94,7 +94,7 @@ export class SMO {
 		const J = this.indexJ;
 
 		// compute partials
-		const edgeI = this.expect[I] * deltaI * this.svm.kernel(this.inputs[I], this.inputs[I]);
+		const edgeI = this.expect[I] * deltaI * this.svm.kernel(this.inputs[I], this.inputs[J]);
 		const edgeJ = this.expect[J] * deltaJ * this.svm.kernel(this.inputs[J], this.inputs[J]);
 
 		return this.svm.B - this.errorJ - edgeI - edgeJ;

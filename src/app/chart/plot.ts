@@ -2,13 +2,22 @@ import { Chart } from "chart.js/auto";
 import { Dataset } from "./data";
 import { drawRecurse } from "./draw";
 
+let shift = false;
+
+window.addEventListener("keydown", (e) => {
+	shift = e.shiftKey;
+});
+
+window.addEventListener("keyup", (e) => {
+	shift = e.shiftKey;
+});
+
 export class Plot {
-	public static colorIn = "#F2BAC9";
-	public static colorOut = "#BAD7F2";
+	public static colorIn = "#BAD7F2";
+	public static colorOut = "#F2BAC9";
 
 	private readonly chart: Chart;
-
-	private chill = false;
+	private classifier?: (inputs: number[]) => number;
 
 	constructor(private canvas: HTMLCanvasElement) {
 		this.chart = new Chart(this.canvas, {
@@ -56,17 +65,19 @@ export class Plot {
 					beforeEvent: (chart, args) => {
 						if (args.event.type !== "click") return;
 
+						const idx = shift ? 0 : 1;
+
 						const x = chart.scales.x.getDecimalForPixel(args.event.x!);
 						const y = chart.scales.y.getDecimalForPixel(args.event.y!);
 
-						chart.data.datasets[0].data.push({ x, y });
+						chart.data.datasets[idx].data.push({ x, y });
 						chart.update();
 					},
 				},
 				{
 					id: "draw_boundries",
 					beforeDraw: (chart) => {
-						if (this.chill) return;
+						if (!this.classifier) return;
 
 						const ctx = chart.ctx;
 						const cvs = chart.canvas;
@@ -76,6 +87,8 @@ export class Plot {
 							y: 0,
 							w: cvs.width,
 						};
+
+						drawRecurse(ctx, cvs, this.classifier, data, deep);
 					},
 				},
 			],
@@ -85,9 +98,26 @@ export class Plot {
 		window.addEventListener("resize", () => this.chart.update());
 	}
 
+	public draw(classifier: (inputs: number[]) => number): void {
+		this.classifier = classifier;
+		this.chart.draw();
+
+		delete this.classifier;
+	}
+
+	public get dataIn(): Dataset {
+		const raw = this.chart.data.datasets[0].data as { x: number; y: number }[];
+		return raw.map((d) => [d.x, d.y]);
+	}
+
 	public set dataIn(dataset: Dataset) {
 		this.chart.data.datasets[0].data = dataset.map((d) => ({ x: d[0], y: d[1] }));
 		this.chart.update();
+	}
+
+	public get dataOut(): Dataset {
+		const raw = this.chart.data.datasets[1].data as { x: number; y: number }[];
+		return raw.map((d) => [d.x, d.y]);
 	}
 
 	public set dataOut(dataset: Dataset) {

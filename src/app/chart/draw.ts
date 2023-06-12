@@ -20,7 +20,7 @@ function draw(
 
 	ctx.beginPath();
 	ctx.fillStyle = color;
-	ctx.fillRect(data.x - 0.1, data.y - 0.1, data.w + 0.2, data.w + 0.2);
+	ctx.fillRect(data.x - 0.2, data.y - 0.2, data.w + 0.4, data.w + 0.4);
 	ctx.closePath();
 }
 
