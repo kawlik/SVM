@@ -1,4 +1,4 @@
-import { SVM } from "./svm2";
+import { SVM } from "./svm";
 import { Random } from "./utils/random";
 
 export class SMO {

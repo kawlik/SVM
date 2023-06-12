@@ -1,6 +1,5 @@
 import { SMO } from "./smo";
 import { Kernel } from "./utils/kernel";
-import { Random } from "./utils/random";
 
 export class SVM {
 	// external datasets
@@ -32,14 +31,6 @@ export class SVM {
 		// init empty internals
 		this.a = [];
 		this.b = 0;
-	}
-
-	/**
-	 * @param input Vector of the measurement point parameters
-	 * @returns Indices of the measurement point to margin
-	 */
-	public predict(input: number[]): number {
-		return Math.sign(this.margin(input));
 	}
 
 	/**
