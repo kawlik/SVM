@@ -47,7 +47,7 @@ export function getStreak(numData: number = 100): [Dataset, Dataset] {
 }
 
 function getDataset(numData: number, classify: (x1: number, x2: number) => boolean): Dataset {
-	const dataset = new Array<[number, number]>(numData);
+	const dataset = new Array<[number, number]>(Math.round(numData));
 
 	for (let i = 0; i < numData; i++) {
 		let x1 = Math.random();

@@ -1,30 +1,27 @@
-import { createEffect, createSignal, onMount } from "solid-js";
-import { getCircle, getSquare, getStreak } from "./data";
+import { createEffect, onMount } from "solid-js";
+import { Dataset } from "./data";
 import { Plot } from "./plot";
 import { SVM } from "../../model/svm";
 
-export default function () {
+export default function (props: { datasets: [Dataset, Dataset]; svm: SVM }) {
 	// component logic
-	const [datasets, setDatasets] = createSignal(getStreak(250));
-
 	onMount(() => {
 		const plot = new Plot(document.querySelector("#chart")!);
-		const svm = new SVM();
+
+		createEffect(() => {
+			plot.dataIn = props.datasets[0];
+			plot.dataOut = props.datasets[1];
+		});
 
 		window.addEventListener("keypress", (e) => {
 			if (e.code !== "Space") return;
 
-			svm.train(
-				[...plot.dataIn, ...plot.dataOut],
-				[...plot.dataIn.map((_) => +1), ...plot.dataOut.map((_) => -1)]
-			);
+			const inputs = [...plot.dataIn, ...plot.dataOut];
+			const expect = [...plot.dataIn.map((_) => +1), ...plot.dataOut.map((_) => -1)];
 
-			plot.draw((inputs) => (svm.margin(inputs) <= 0 ? 0 : 1));
-		});
+			props.svm.train(inputs, expect);
 
-		createEffect(() => {
-			plot.dataIn = datasets()[0];
-			plot.dataOut = datasets()[1];
+			plot.draw((inputs) => (props.svm.margin(inputs) <= 0 ? 0 : 1));
 		});
 	});
 
