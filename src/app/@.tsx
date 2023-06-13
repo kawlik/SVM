@@ -1,7 +1,6 @@
-import { createEffect, createSignal } from "solid-js";
-import { getClear } from "./chart/data";
-import { Kernel } from "../model/utils/kernel";
 import { SVM } from "../model/svm";
+import { Kernel } from "../model/utils/kernel";
+import { getCircle, getSquare, getStreak } from "./chart/data";
 
 // import app components
 import Chart from "./chart/@";
@@ -9,36 +8,52 @@ import Panel from "./panel/@";
 
 export default function () {
 	// component logic
+	const getDatasets = (datatype: "Circle" | "Square" | "Streak", datasize: number) => {
+		if ("Circle" === datatype) return getCircle(datasize);
+		if ("Square" === datatype) return getSquare(datasize);
 
-	// util data components
-	const [datasets, setDatasets] = createSignal(getClear());
+		return getStreak(datasize);
+	};
 
-	// util svm components
-	const [kernel, setKernel] = createSignal(Kernel.rfb(2e-2));
-	const [coherence, setCoherence] = createSignal(1);
-	const [numEpochs, setNumEpochs] = createSignal(10_000);
-	const [numPasses, setNumPasses] = createSignal(10);
-	const [tolerance, setTolerance] = createSignal(1e-4);
+	const getKernel = (kerneltype: "Linear" | "Radial" | "Polynomial", kernelsize: number) => {
+		if ("Linear" === kerneltype) return Kernel.linear;
+		if ("Radial" === kerneltype) return Kernel.rfb(kernelsize);
 
-	// main classifier
-	const [svm, setSVM] = createSignal(new SVM());
+		return Kernel.ply(kernelsize);
+	};
 
-	// auto update
-	createEffect(() => {
-		setSVM(new SVM(kernel(), coherence(), numEpochs(), numPasses(), tolerance()));
-	});
+	// setup
+	const datatype: "Circle" | "Square" | "Streak" = "Circle";
+	const kerneltype: "Linear" | "Radial" | "Polynomial" = "Radial";
+	const kernelsize: number = 5e-2;
+
+	// datasets
+	const datasize = 100;
+	const datasets = getDatasets(datatype, datasize);
+
+	// classifier utils
+	const kernel = getKernel(kerneltype, kernelsize);
+	const coherence = 1;
+	const numEpochs = 10_000;
+	const numPasses = 10;
+	const tolerance = 1e-4;
+
+	// classifier init
+	const svm = new SVM(kernel, coherence, numEpochs, numPasses, tolerance);
 
 	// component layout
 	return (
 		<main class="flex gap-4 p-4 w-full h-full">
-			<Chart datasets={datasets()} svm={svm()} />
+			<Chart datasets={datasets} svm={svm} />
 			<Panel
-				setDatasets={setDatasets}
-				setKernel={setKernel}
-				setCoherence={setCoherence}
-				setNumEpochs={setNumEpochs}
-				setNumPasses={setNumPasses}
-				setTolerance={setTolerance}
+				datasize={datasize}
+				datatype={datatype}
+				kernelsize={kernelsize}
+				kerneltype={kerneltype}
+				coherence={coherence}
+				numEpochs={numEpochs}
+				numPasses={numPasses}
+				tolerance={tolerance}
 			/>
 		</main>
 	);
